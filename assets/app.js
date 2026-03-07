@@ -198,8 +198,6 @@ function serializeNode(node, depth = 0) {
       const text = (node.content || []).map((child) => child.text || "").join("");
       return `\`\`\`${language}\n${text}\n\`\`\`\n\n`;
     }
-    case "blockMath":
-      return `$$\n${node.attrs?.latex || ""}\n$$\n\n`;
     case "horizontalRule":
       return `---\n\n`;
     default:
@@ -209,6 +207,24 @@ function serializeNode(node, depth = 0) {
 
 function serializeDocument(json) {
   return serializeNode(json).replace(/\n{3,}/g, "\n\n").trimEnd();
+}
+
+function extractTableOfContents(markdown) {
+  return markdown
+    .split("\n")
+    .map((line) => {
+      const match = line.match(/^(#{1,3})\s+(.+)$/);
+
+      if (!match) {
+        return null;
+      }
+
+      return {
+        level: match[1].length,
+        title: match[2].trim(),
+      };
+    })
+    .filter(Boolean);
 }
 
 function migrateMath(editor) {
@@ -228,64 +244,6 @@ function migrateMath(editor) {
 }
 
 function migrateMultilineBlockMath(editor) {
-  if (!editor) return false;
-
-  const { doc, schema } = editor.state;
-  const blockMathType = schema.nodes.blockMath;
-
-  if (!blockMathType) {
-    return false;
-  }
-
-  const topLevelNodes = [];
-  let offset = 0;
-
-  doc.forEach((node) => {
-    topLevelNodes.push({
-      node,
-      from: offset,
-      to: offset + node.nodeSize,
-    });
-    offset += node.nodeSize;
-  });
-
-  for (let index = 0; index < topLevelNodes.length; index += 1) {
-    const startNode = topLevelNodes[index];
-
-    if (
-      startNode.node.type.name !== "paragraph" ||
-      startNode.node.textContent.trim() !== "$$"
-    ) {
-      continue;
-    }
-
-    for (let endIndex = index + 1; endIndex < topLevelNodes.length; endIndex += 1) {
-      const endNode = topLevelNodes[endIndex];
-
-      if (
-        endNode.node.type.name === "paragraph" &&
-        endNode.node.textContent.trim() === "$$"
-      ) {
-        const latex = topLevelNodes
-          .slice(index + 1, endIndex)
-          .map((entry) => entry.node.textContent)
-          .join("\n")
-          .trim();
-
-        const transaction = editor.state.tr.replaceWith(
-          startNode.from,
-          endNode.to,
-          blockMathType.create({
-            latex: latex || "x^2",
-          }),
-        );
-
-        editor.view.dispatch(transaction);
-        return true;
-      }
-    }
-  }
-
   return false;
 }
 
@@ -351,17 +309,6 @@ const VisualEditor = forwardRef(function VisualEditor(
             );
             if (latex !== null) {
               editor.chain().setNodeSelection(pos).updateInlineMath({ latex }).focus().run();
-            }
-          },
-        },
-        blockOptions: {
-          onClick: (node, pos) => {
-            const latex = getLatexInput(
-              node.attrs.latex || "",
-              "Edit block LaTeX",
-            );
-            if (latex !== null) {
-              editor.chain().setNodeSelection(pos).updateBlockMath({ latex }).focus().run();
             }
           },
         },
@@ -447,15 +394,6 @@ const VisualEditor = forwardRef(function VisualEditor(
             }
             break;
           }
-          case "blockMath": {
-            const { from, to } = editor.state.selection;
-            const selected = editor.state.doc.textBetween(from, to, "\n");
-            const latex = getLatexInput(selected || "\\int_0^1 x^2\\,dx", "Block LaTeX");
-            if (latex) {
-              editor.commands.insertBlockMath({ latex });
-            }
-            break;
-          }
           default:
             break;
         }
@@ -502,9 +440,6 @@ const MarkdownEditor = forwardRef(function MarkdownEditor(
         case "inlineMath":
           wrapSelection(textarea, markdown, onChange, "$");
           break;
-        case "blockMath":
-          wrapBlockSelection(textarea, markdown, onChange, "$$", "$$");
-          break;
         default:
           break;
       }
@@ -543,6 +478,11 @@ function App() {
     document.documentElement.classList.toggle("dark", isDark);
   }, [isDark]);
 
+  const tableOfContents = useMemo(
+    () => extractTableOfContents(markdown),
+    [markdown],
+  );
+
   const stats = useMemo(() => {
     const words = markdown.trim() ? markdown.trim().split(/\s+/).length : 0;
     return { words, chars: markdown.length };
@@ -556,20 +496,37 @@ function App() {
     <main className="min-h-screen px-4 py-5 sm:px-6 lg:px-10">
       <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-7xl flex-col gap-5">
         <section className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
-          <aside className="rounded-[2rem] border border-white/70 bg-white/70 p-6 shadow-panel backdrop-blur dark:border-slate-800 dark:bg-slate-900/70">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-clay">
-              AstraNote
-            </p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-ink dark:text-white">
-              TipTap is live again
-            </h1>
-            <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">
-              This version uses the same strategy as before: TipTap for visual
-              editing, Markdown as the shared state, and HTML conversion in both
-              directions.
+          <aside className="flex h-full flex-col rounded-[2rem] border border-white/70 bg-white/70 p-6 shadow-panel backdrop-blur dark:border-slate-800 dark:bg-slate-900/70">
+            <p className="text-base font-extrabold tracking-tight text-clay">
+              ✨ AstraNote
             </p>
 
-            <div className="mt-6 grid gap-3 rounded-[1.5rem] border border-slate-200/80 bg-[#f5f1e8] p-4 text-sm dark:border-slate-700 dark:bg-slate-950/60">
+            <div className="mt-6 rounded-[1.5rem] border border-slate-200/80 bg-[#f5f1e8] p-4 dark:border-slate-700 dark:bg-slate-950/60">
+              ${tableOfContents.length > 0
+                ? html`<nav className="space-y-1">
+                    ${tableOfContents.map(
+                      (item) => html`
+                        <div
+                          className=${`rounded-xl px-3 py-2 text-sm transition ${
+                            item.level === 1
+                              ? "font-semibold text-ink dark:text-white"
+                              : item.level === 2
+                                ? "pl-6 text-slate-700 dark:text-slate-200"
+                                : "pl-9 text-slate-500 dark:text-slate-400"
+                          }`}
+                        >
+                          ${item.title}
+                        </div>
+                      `,
+                    )}
+                  </nav>`
+                : html`<p className="text-sm leading-7 text-slate-500 dark:text-slate-400">
+                    Add headings with <code>#</code>, <code>##</code>, and
+                    <code>###</code> to populate the outline.
+                  </p>`}
+            </div>
+
+            <div className="mt-auto grid gap-3 rounded-[1.5rem] border border-slate-200/80 bg-white/60 p-4 text-sm dark:border-slate-700 dark:bg-slate-900/50">
               <div className="flex items-center justify-between">
                 <span className="text-slate-500 dark:text-slate-400">Words</span>
                 <strong>${stats.words}</strong>
@@ -597,7 +554,6 @@ function App() {
                 <${IconButton} title="Bulleted list" onClick=${() => runAction("bulletList")}>•</${IconButton}>
                 <${IconButton} title="Ordered list" onClick=${() => runAction("orderedList")}>1.</${IconButton}>
                 <${IconButton} title="Inline math" onClick=${() => runAction("inlineMath")}><span className="font-serif text-sm">ƒx</span></${IconButton}>
-                <${IconButton} title="Block math" onClick=${() => runAction("blockMath")}><span className="font-serif text-sm">∑</span></${IconButton}>
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
