@@ -258,7 +258,7 @@ function IconButton({ title, onClick, children }) {
       type="button"
       title=${title}
       onClick=${onClick}
-      className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200/80 bg-white/80 text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-clay/40 hover:text-clay dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200 dark:hover:border-clay/50 dark:hover:text-orange-200"
+      className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300/90 bg-white/90 text-slate-700 shadow-sm transition hover:border-clay/40 hover:text-clay dark:border-slate-700 dark:bg-slate-900/85 dark:text-slate-200 dark:hover:border-clay/50 dark:hover:text-orange-200"
     >
       ${children}
     </button>
@@ -267,14 +267,14 @@ function IconButton({ title, onClick, children }) {
 
 function ModeToggle({ view, setView }) {
   const base =
-    "rounded-full px-3 py-1.5 text-sm font-medium transition focus:outline-none";
+    "rounded-sm px-3 py-1.5 text-sm font-medium transition focus:outline-none";
   const active =
     "bg-ink text-white shadow-sm dark:bg-slate-100 dark:text-slate-900";
   const idle =
     "text-slate-600 hover:text-ink dark:text-slate-300 dark:hover:text-white";
 
   return html`
-    <div className="inline-flex rounded-full border border-slate-200 bg-white/70 p-1 dark:border-slate-700 dark:bg-slate-900/70">
+    <div className="inline-flex rounded-md border border-slate-300/90 bg-white/85 p-1 dark:border-slate-700 dark:bg-slate-900/75">
       <button
         type="button"
         className=${`${base} ${view === VIEW.visual ? active : idle}`}
@@ -323,7 +323,7 @@ const VisualEditor = forwardRef(function VisualEditor(
     editorProps: {
       attributes: {
         class:
-          "prose prose-slate max-w-none min-h-[55vh] px-1 focus:outline-none dark:prose-invert prose-headings:font-semibold prose-p:leading-7 prose-blockquote:border-l-clay prose-blockquote:text-slate-600 dark:prose-blockquote:text-slate-300 prose-code:rounded prose-code:bg-slate-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:font-mono prose-code:text-[0.9em] prose-code:text-clay prose-code:before:content-none prose-code:after:content-none dark:prose-code:bg-slate-800/80 dark:prose-code:text-orange-200 prose-pre:rounded-[1.5rem] prose-pre:bg-slate-950 prose-pre:px-5 prose-pre:py-4 prose-pre:text-slate-100 dark:prose-pre:bg-black prose-pre:shadow-lg prose-pre:before:content-none prose-pre:after:content-none prose-pre:overflow-x-auto prose-pre:code:bg-transparent prose-pre:code:p-0 prose-pre:code:text-inherit prose-pre:code:rounded-none",
+          "prose prose-sm prose-slate max-w-none min-h-full px-1 focus:outline-none dark:prose-invert prose-headings:font-semibold prose-p:leading-6 prose-li:leading-6 prose-blockquote:border-l-clay prose-blockquote:text-slate-600 dark:prose-blockquote:text-slate-300 prose-code:rounded prose-code:bg-slate-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:font-mono prose-code:text-[0.9em] prose-code:text-clay prose-code:before:content-none prose-code:after:content-none dark:prose-code:bg-slate-800/80 dark:prose-code:text-orange-200 prose-pre:rounded-[1.1rem] prose-pre:bg-slate-950 prose-pre:px-4 prose-pre:py-3 prose-pre:text-slate-100 dark:prose-pre:bg-black prose-pre:shadow-lg prose-pre:before:content-none prose-pre:after:content-none prose-pre:overflow-x-auto prose-pre:code:bg-transparent prose-pre:code:p-0 prose-pre:code:text-inherit prose-pre:code:rounded-none",
       },
     },
     content: marked.parse(markdown),
@@ -403,7 +403,7 @@ const VisualEditor = forwardRef(function VisualEditor(
   );
 
   return html`
-    <div className="editor-scroll h-full overflow-y-auto px-6 py-6 sm:px-10">
+    <div className="editor-scroll h-full min-h-0 overflow-y-auto px-5 py-4 sm:px-8">
       <${EditorContent} editor=${editor} />
     </div>
   `;
@@ -447,13 +447,13 @@ const MarkdownEditor = forwardRef(function MarkdownEditor(
   }));
 
   return html`
-    <div className="h-full p-4 sm:p-6">
+    <div className="h-full p-3 sm:p-4">
       <textarea
         ref=${textareaRef}
         value=${markdown}
         onChange=${(event) => onChange(event.target.value)}
         spellCheck="false"
-        className="editor-scroll h-full min-h-[55vh] w-full resize-none rounded-[2rem] border border-slate-200 bg-[#fffdf9] p-6 font-mono text-sm leading-7 text-slate-800 outline-none ring-0 transition focus:border-clay/50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+        className="editor-scroll h-full min-h-full w-full resize-none rounded-md border border-slate-300 bg-[#fffdf9] p-4 font-mono text-sm leading-6 text-slate-800 outline-none ring-0 transition focus:border-clay/50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
       ></textarea>
     </div>
   `;
@@ -493,21 +493,21 @@ function App() {
   }
 
   return html`
-    <main className="min-h-screen px-4 py-5 sm:px-6 lg:px-10">
-      <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-7xl flex-col gap-5">
-        <section className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
-          <aside className="flex h-full flex-col rounded-[2rem] border border-white/70 bg-white/70 p-6 shadow-panel backdrop-blur dark:border-slate-800 dark:bg-slate-900/70">
+    <main className="min-h-screen px-4 py-4 sm:px-5 lg:px-8">
+      <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-7xl flex-col gap-4">
+        <section className="grid gap-3 lg:grid-cols-[280px_minmax(0,1fr)]">
+          <aside className="flex h-full flex-col rounded-lg border border-slate-300/80 bg-white/78 p-4 shadow-panel backdrop-blur dark:border-slate-800 dark:bg-slate-900/72">
             <p className="text-base font-extrabold tracking-tight text-clay">
               ✨ AstraNote
             </p>
 
-            <div className="mt-6 rounded-[1.5rem] border border-slate-200/80 bg-[#f5f1e8] p-4 dark:border-slate-700 dark:bg-slate-950/60">
+            <div className="mt-4 rounded-md border border-slate-300/80 bg-[#f5f1e8] p-3 dark:border-slate-700 dark:bg-slate-950/60">
               ${tableOfContents.length > 0
                 ? html`<nav className="space-y-1">
                     ${tableOfContents.map(
                       (item) => html`
                         <div
-                          className=${`rounded-xl px-3 py-2 text-sm transition ${
+                          className=${`border-l-2 border-transparent px-2.5 py-1.5 text-sm transition hover:border-clay/40 ${
                             item.level === 1
                               ? "font-semibold text-ink dark:text-white"
                               : item.level === 2
@@ -520,13 +520,13 @@ function App() {
                       `,
                     )}
                   </nav>`
-                : html`<p className="text-sm leading-7 text-slate-500 dark:text-slate-400">
+                : html`<p className="text-sm leading-6 text-slate-500 dark:text-slate-400">
                     Add headings with <code>#</code>, <code>##</code>, and
                     <code>###</code> to populate the outline.
                   </p>`}
             </div>
 
-            <div className="mt-auto grid gap-3 rounded-[1.5rem] border border-slate-200/80 bg-white/60 p-4 text-sm dark:border-slate-700 dark:bg-slate-900/50">
+            <div className="mt-auto grid gap-2 rounded-md border border-slate-300/80 bg-white/68 p-3 text-sm dark:border-slate-700 dark:bg-slate-900/50">
               <div className="flex items-center justify-between">
                 <span className="text-slate-500 dark:text-slate-400">Words</span>
                 <strong>${stats.words}</strong>
@@ -542,8 +542,8 @@ function App() {
             </div>
           </aside>
 
-          <section className="flex min-h-[72vh] flex-col overflow-hidden rounded-[2rem] border border-white/70 bg-white/80 shadow-panel backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
-            <header className="flex flex-col gap-4 border-b border-slate-200/80 px-4 py-4 dark:border-slate-800 sm:px-6">
+          <section className="flex min-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-lg border border-slate-300/80 bg-white/82 shadow-panel backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
+            <header className="flex flex-col gap-3 border-b border-slate-200/80 px-4 py-3 dark:border-slate-800 sm:px-5">
               <div className="flex flex-wrap items-center gap-2">
                 <${IconButton} title="Undo" onClick=${() => runAction("undo")}><span className="text-lg leading-none">↺</span></${IconButton}>
                 <${IconButton} title="Redo" onClick=${() => runAction("redo")}><span className="text-lg leading-none">↻</span></${IconButton}>
@@ -556,20 +556,20 @@ function App() {
                 <${IconButton} title="Inline math" onClick=${() => runAction("inlineMath")}><span className="font-serif text-sm">ƒx</span></${IconButton}>
               </div>
 
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <${ModeToggle} view=${view} setView=${setView} />
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick=${() => downloadMarkdown(markdown)}
-                    className="rounded-full bg-clay px-4 py-2 text-sm font-medium text-white transition hover:bg-[#a85b3d]"
+                    className="rounded-md bg-clay px-3.5 py-1.5 text-sm font-medium text-white transition hover:bg-[#a85b3d]"
                   >
                     Download .md
                   </button>
                   <button
                     type="button"
                     onClick=${() => setIsDark((current) => !current)}
-                    className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-pine/40 hover:text-pine dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
+                    className="rounded-md border border-slate-300 bg-white px-3.5 py-1.5 text-sm font-medium text-slate-700 transition hover:border-pine/40 hover:text-pine dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
                   >
                     ${isDark ? "Light" : "Dark"}
                   </button>
@@ -579,16 +579,20 @@ function App() {
 
             <div className="min-h-0 flex-1 bg-[#fffdf8] dark:bg-[#121927]">
               ${view === VIEW.visual
-                ? html`<${VisualEditor}
-                    ref=${editorRef}
-                    markdown=${markdown}
-                    onChange=${setMarkdown}
-                  />`
-                : html`<${MarkdownEditor}
-                    ref=${editorRef}
-                    markdown=${markdown}
-                    onChange=${setMarkdown}
-                  />`}
+                ? html`<div className="h-full min-h-0">
+                    <${VisualEditor}
+                      ref=${editorRef}
+                      markdown=${markdown}
+                      onChange=${setMarkdown}
+                    />
+                  </div>`
+                : html`<div className="h-full min-h-0">
+                    <${MarkdownEditor}
+                      ref=${editorRef}
+                      markdown=${markdown}
+                      onChange=${setMarkdown}
+                    />
+                  </div>`}
             </div>
           </section>
         </section>
