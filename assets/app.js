@@ -57,6 +57,237 @@ function downloadMarkdown(markdown) {
   URL.revokeObjectURL(url);
 }
 
+function escapeHtml(value) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function markdownToPrintHtml(markdown) {
+  const htmlText = marked.parse(markdown);
+  return `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <title>${escapeHtml("AstraNote Export")}</title>
+        <style>
+          :root {
+            color-scheme: light;
+          }
+
+          body {
+            margin: 0;
+            font-family: Georgia, "Times New Roman", serif;
+            color: #172033;
+            background: white;
+          }
+
+          main {
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 48px 40px 64px;
+          }
+
+          h1, h2, h3 {
+            line-height: 1.25;
+            margin: 1.1em 0 0.45em;
+          }
+
+          h1 { font-size: 1.9rem; }
+          h2 { font-size: 1.45rem; }
+          h3 { font-size: 1.15rem; }
+
+          p, ul, ol, blockquote, pre {
+            font-size: 1rem;
+            line-height: 1.65;
+            margin: 0.6em 0;
+          }
+
+          code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            background: #f3f4f6;
+            border-radius: 4px;
+            padding: 0.08rem 0.3rem;
+          }
+
+          pre {
+            overflow-x: auto;
+            background: #0f172a;
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 14px 16px;
+          }
+
+          pre code {
+            background: transparent;
+            padding: 0;
+            color: inherit;
+          }
+
+          blockquote {
+            border-left: 3px solid #b86a4a;
+            padding-left: 1rem;
+            color: #475569;
+          }
+
+          @page {
+            margin: 16mm;
+          }
+        </style>
+      </head>
+      <body>
+        <main>${htmlText}</main>
+      </body>
+    </html>
+  `;
+}
+
+function exportPdf(markdown) {
+  const iframe = document.createElement("iframe");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "0";
+  iframe.setAttribute("aria-hidden", "true");
+
+  document.body.appendChild(iframe);
+
+  const frameWindow = iframe.contentWindow;
+
+  if (!frameWindow) {
+    document.body.removeChild(iframe);
+    throw new Error("Unable to create print frame");
+  }
+
+  frameWindow.document.open();
+  frameWindow.document.write(markdownToPrintHtml(markdown));
+  frameWindow.document.close();
+
+  const cleanup = () => {
+    window.setTimeout(() => {
+      if (iframe.parentNode) {
+        iframe.parentNode.removeChild(iframe);
+      }
+    }, 1000);
+  };
+
+  iframe.onload = () => {
+    frameWindow.focus();
+    frameWindow.print();
+    cleanup();
+  };
+}
+
+function supportsFileSystemAccess() {
+  return (
+    typeof window !== "undefined" &&
+    "showOpenFilePicker" in window &&
+    "showSaveFilePicker" in window
+  );
+}
+
+async function openMarkdownFile() {
+  if (supportsFileSystemAccess()) {
+    const [handle] = await window.showOpenFilePicker({
+      multiple: false,
+      types: [
+        {
+          description: "Markdown files",
+          accept: {
+            "text/markdown": [".md", ".markdown", ".mdown"],
+            "text/plain": [".txt"],
+          },
+        },
+      ],
+    });
+
+    const file = await handle.getFile();
+    const markdown = await file.text();
+
+    return {
+      markdown,
+      handle,
+      name: file.name,
+    };
+  }
+
+  return new Promise((resolve, reject) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".md,.markdown,.mdown,.txt,text/markdown,text/plain";
+
+    input.addEventListener("change", async () => {
+      const file = input.files?.[0];
+
+      if (!file) {
+        reject(new Error("No file selected"));
+        return;
+      }
+
+      const markdown = await file.text();
+      resolve({
+        markdown,
+        handle: null,
+        name: file.name,
+      });
+    });
+
+    input.click();
+  });
+}
+
+async function writeMarkdownToHandle(handle, markdown) {
+  const writable = await handle.createWritable();
+  await writable.write(markdown);
+  await writable.close();
+}
+
+async function saveMarkdownFile(markdown, currentHandle, currentName) {
+  if (currentHandle && supportsFileSystemAccess()) {
+    await writeMarkdownToHandle(currentHandle, markdown);
+    return {
+      handle: currentHandle,
+      name: currentName || "Untitled.md",
+      method: "saved",
+    };
+  }
+
+  if (supportsFileSystemAccess()) {
+    const handle = await window.showSaveFilePicker({
+      suggestedName: currentName || "astranote.md",
+      types: [
+        {
+          description: "Markdown files",
+          accept: {
+            "text/markdown": [".md"],
+            "text/plain": [".txt"],
+          },
+        },
+      ],
+    });
+
+    await writeMarkdownToHandle(handle, markdown);
+    return {
+      handle,
+      name: handle.name || currentName || "astranote.md",
+      method: "saved-as",
+    };
+  }
+
+  downloadMarkdown(markdown);
+  return {
+    handle: null,
+    name: currentName || "astranote.md",
+    method: "downloaded",
+  };
+}
+
 function wrapSelection(textarea, value, onChange, prefix, suffix = prefix) {
   if (!textarea) return;
   const start = textarea.selectionStart;
@@ -467,6 +698,9 @@ function App() {
   const [isDark, setIsDark] = useState(() => {
     return localStorage.getItem("astranote-theme") === "dark";
   });
+  const [fileHandle, setFileHandle] = useState(null);
+  const [fileName, setFileName] = useState("Untitled.md");
+  const [statusMessage, setStatusMessage] = useState("Local draft");
   const editorRef = useRef(null);
 
   useEffect(() => {
@@ -490,6 +724,38 @@ function App() {
 
   function runAction(action) {
     editorRef.current?.execute(action);
+  }
+
+  async function handleOpen() {
+    try {
+      const result = await openMarkdownFile();
+      setMarkdown(result.markdown);
+      setFileHandle(result.handle);
+      setFileName(result.name || "Untitled.md");
+      setStatusMessage(`Opened ${result.name || "file"}`);
+    } catch (error) {
+      if (error?.name !== "AbortError") {
+        setStatusMessage("Open cancelled");
+      }
+    }
+  }
+
+  async function handleSave() {
+    try {
+      const result = await saveMarkdownFile(markdown, fileHandle, fileName);
+      setFileHandle(result.handle);
+      setFileName(result.name || fileName);
+
+      if (result.method === "downloaded") {
+        setStatusMessage("Downloaded Markdown file");
+      } else {
+        setStatusMessage(`Saved ${result.name}`);
+      }
+    } catch (error) {
+      if (error?.name !== "AbortError") {
+        setStatusMessage("Save cancelled");
+      }
+    }
   }
 
   return html`
@@ -527,6 +793,10 @@ function App() {
             </div>
 
             <div className="mt-auto grid gap-2 rounded-md border border-slate-300/80 bg-white/68 p-3 text-sm dark:border-slate-700 dark:bg-slate-900/50">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-slate-500 dark:text-slate-400">File</span>
+                <strong className="truncate text-right">${fileName}</strong>
+              </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-500 dark:text-slate-400">Words</span>
                 <strong>${stats.words}</strong>
@@ -538,6 +808,9 @@ function App() {
               <div className="flex items-center justify-between">
                 <span className="text-slate-500 dark:text-slate-400">Mode</span>
                 <strong>${view === VIEW.visual ? "Visual" : "Markdown"}</strong>
+              </div>
+              <div className="border-t border-slate-200/80 pt-2 text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                ${statusMessage}
               </div>
             </div>
           </aside>
@@ -561,10 +834,24 @@ function App() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick=${() => downloadMarkdown(markdown)}
+                    onClick=${handleOpen}
+                    className="rounded-md border border-slate-300 bg-white px-3.5 py-1.5 text-sm font-medium text-slate-700 transition hover:border-pine/40 hover:text-pine dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
+                  >
+                    Open
+                  </button>
+                  <button
+                    type="button"
+                    onClick=${handleSave}
                     className="rounded-md bg-clay px-3.5 py-1.5 text-sm font-medium text-white transition hover:bg-[#a85b3d]"
                   >
-                    Download .md
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    onClick=${() => exportPdf(markdown)}
+                    className="rounded-md border border-slate-300 bg-white px-3.5 py-1.5 text-sm font-medium text-slate-700 transition hover:border-pine/40 hover:text-pine dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
+                  >
+                    Export PDF
                   </button>
                   <button
                     type="button"
