@@ -3,99 +3,53 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ZenMark AI</title>
-    <!-- We keep Tailwind CDN for simplicity in this demo, though npm install is better for prod -->
+    <title>AstraNote</title>
     <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
     <script>
       tailwind.config = {
         theme: {
           extend: {
             colors: {
-              gray: {
-                850: '#1f2937',
-                900: '#111827',
-                950: '#0b0f19',
-              },
-              primary: {
-                50: '#f0f9ff',
-                100: '#e0f2fe',
-                500: '#0ea5e9',
-                600: '#0284c7',
-                700: '#0369a1',
-              }
+              ink: "#172033",
+              mist: "#f5f1e8",
+              pine: "#365246",
+              clay: "#b86a4a",
+              paper: "#fffdf8",
+              dusk: "#22314d",
             },
-            typography: (theme) => ({
-              DEFAULT: {
-                css: {
-                  color: theme('colors.gray.800'),
-                  a: {
-                    color: theme('colors.primary.600'),
-                    '&:hover': {
-                      color: theme('colors.primary.700'),
-                    },
-                  },
-                },
-              },
-              dark: {
-                css: {
-                  color: theme('colors.gray.300'),
-                  a: {
-                    color: theme('colors.primary.400'),
-                    '&:hover': {
-                      color: theme('colors.primary.300'),
-                    },
-                  },
-                  h1: { color: theme('colors.gray.100') },
-                  h2: { color: theme('colors.gray.100') },
-                  h3: { color: theme('colors.gray.100') },
-                  h4: { color: theme('colors.gray.100') },
-                  code: { color: theme('colors.primary.300') },
-                  strong: { color: theme('colors.gray.100') },
-                  blockquote: { color: theme('colors.gray.400') },
-                },
-              },
-            }),
+            boxShadow: {
+              panel: "0 24px 80px rgba(23, 32, 51, 0.16)",
+            },
           },
         },
-      }
+      };
     </script>
     <style>
-      /* Custom scrollbar for a cleaner look */
-      ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 4px;
-      }
-      .dark ::-webkit-scrollbar-thumb {
-        background: #4b5563;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
-      }
-      .dark ::-webkit-scrollbar-thumb:hover {
-        background: #6b7280;
-      }
-      
-      /* Hide scrollbar for textarea but allow scrolling */
-      .no-scrollbar::-webkit-scrollbar {
-        display: none;
-      }
-      .no-scrollbar {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
+      :root {
+        color-scheme: light dark;
       }
 
-      /* TipTap Editor Styles */
-      .ProseMirror {
-        outline: none;
-        min-height: 100%;
+      body {
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at top left, rgba(184, 106, 74, 0.2), transparent 24rem),
+          radial-gradient(circle at top right, rgba(54, 82, 70, 0.18), transparent 24rem),
+          linear-gradient(180deg, #f7f2e9 0%, #f2eee6 100%);
       }
+
+      .dark body {
+        background:
+          radial-gradient(circle at top left, rgba(184, 106, 74, 0.14), transparent 24rem),
+          radial-gradient(circle at top right, rgba(103, 130, 118, 0.14), transparent 24rem),
+          linear-gradient(180deg, #121927 0%, #0f1522 100%);
+      }
+
+      .ProseMirror {
+        min-height: 100%;
+        outline: none;
+        white-space: pre-wrap;
+      }
+
       .ProseMirror p.is-editor-empty:first-child::before {
         color: #94a3b8;
         content: attr(data-placeholder);
@@ -103,32 +57,61 @@
         height: 0;
         pointer-events: none;
       }
-    </style>
 
-<link rel="stylesheet" href="/index.css">
-  <script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "react-markdown": "https://esm.sh/react-markdown@^10.1.0",
-    "@google/genai": "https://esm.sh/@google/genai@^1.38.0",
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "react": "https://esm.sh/react@^19.2.4",
-    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
-    "vite": "https://esm.sh/vite@^7.3.1",
-    "@tiptap/react": "https://esm.sh/@tiptap/react@^3.17.1",
-    "turndown": "https://esm.sh/turndown@^7.2.2",
-    "marked": "https://esm.sh/marked@^17.0.1",
-    "remark-gfm": "https://esm.sh/remark-gfm@^4.0.1",
-    "@tiptap/starter-kit": "https://esm.sh/@tiptap/starter-kit@^3.17.1",
-    "@tiptap/extension-placeholder": "https://esm.sh/@tiptap/extension-placeholder@^3.17.1"
-  }
-}
-</script>
-  <script type="module" crossorigin src="/assets/index-ZPN9QvMs.js"></script>
-</head>
-  <body class="bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-200">
+      .ProseMirror code {
+        border-radius: 0.5rem;
+        background: rgba(148, 163, 184, 0.18);
+        padding: 0.12rem 0.38rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.9em;
+        color: #b45309;
+      }
+
+      .dark .ProseMirror code {
+        background: rgba(51, 65, 85, 0.9);
+        color: #fdba74;
+      }
+
+      .ProseMirror pre {
+        overflow-x: auto;
+        border-radius: 1.5rem;
+        background: #0f172a;
+        padding: 1.1rem 1.25rem;
+        color: #e2e8f0;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+      }
+
+      .dark .ProseMirror pre {
+        background: #020617;
+      }
+
+      .ProseMirror pre code {
+        display: block;
+        background: transparent;
+        padding: 0;
+        border-radius: 0;
+        color: inherit;
+        font-size: 0.95em;
+        line-height: 1.75;
+      }
+
+      .editor-scroll::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+
+      .editor-scroll::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.55);
+        border-radius: 9999px;
+      }
+
+      .editor-scroll::-webkit-scrollbar-track {
+        background: transparent;
+      }
+    </style>
+  </head>
+  <body class="text-ink antialiased transition-colors duration-200 dark:text-slate-100">
     <div id="root"></div>
+    <script type="module" src="/assets/app.js"></script>
   </body>
 </html>
