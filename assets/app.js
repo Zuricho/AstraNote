@@ -9,13 +9,17 @@ import React, {
 import { createRoot } from "https://esm.sh/react-dom@18.3.1/client?deps=react@18.3.1";
 import htm from "https://esm.sh/htm@3.1.1";
 import {
+  Mathematics,
+  createMathMigrateTransaction,
+  mathMigrationRegex,
+} from "https://esm.sh/@tiptap/extension-mathematics@3.17.1?deps=react@18.3.1,react-dom@18.3.1";
+import {
   EditorContent,
   useEditor,
 } from "https://esm.sh/@tiptap/react@3.17.1?deps=react@18.3.1,react-dom@18.3.1";
 import StarterKit from "https://esm.sh/@tiptap/starter-kit@3.17.1";
 import Placeholder from "https://esm.sh/@tiptap/extension-placeholder@3.17.1";
 import { marked } from "https://esm.sh/marked@17.0.1";
-import TurndownService from "https://esm.sh/turndown@7.2.2";
 
 const html = htm.bind(React.createElement);
 
@@ -39,12 +43,6 @@ This editor keeps one **Markdown string** as the source of truth.
 marked.setOptions({
   breaks: true,
   gfm: true,
-});
-
-const turndown = new TurndownService({
-  headingStyle: "atx",
-  codeBlockStyle: "fenced",
-  bulletListMarker: "-",
 });
 
 function downloadMarkdown(markdown) {
@@ -89,6 +87,211 @@ function prefixSelection(textarea, value, onChange, prefix) {
     textarea.focus();
     textarea.setSelectionRange(lineStart, lineStart + nextBlock.length);
   });
+}
+
+function wrapBlockSelection(textarea, value, onChange, prefix, suffix) {
+  if (!textarea) return;
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const selected = value.slice(start, end).trim() || "x^2";
+  const nextValue =
+    value.slice(0, start) + `${prefix}\n${selected}\n${suffix}` + value.slice(end);
+  onChange(nextValue);
+  requestAnimationFrame(() => {
+    textarea.focus();
+  });
+}
+
+function escapeMarkdownText(value) {
+  return value.replace(/\\/g, "\\\\");
+}
+
+function serializeTextNode(node) {
+  let text = escapeMarkdownText(node.text || "");
+  const marks = node.marks || [];
+  const hasCode = marks.some((mark) => mark.type === "code");
+
+  if (hasCode) {
+    return `\`${text}\``;
+  }
+
+  if (marks.some((mark) => mark.type === "bold")) {
+    text = `**${text}**`;
+  }
+
+  if (marks.some((mark) => mark.type === "italic")) {
+    text = `*${text}*`;
+  }
+
+  return text;
+}
+
+function serializeInline(nodes = []) {
+  return nodes
+    .map((node) => {
+      switch (node.type) {
+        case "text":
+          return serializeTextNode(node);
+        case "inlineMath":
+          return `$${node.attrs?.latex || ""}$`;
+        case "hardBreak":
+          return "  \n";
+        default:
+          return "";
+      }
+    })
+    .join("");
+}
+
+function indentBlock(text, prefix) {
+  return text
+    .split("\n")
+    .map((line) => (line ? `${prefix}${line}` : prefix.trimEnd()))
+    .join("\n");
+}
+
+function serializeListItem(node, depth, ordered, index) {
+  const marker = ordered ? `${index + 1}. ` : "- ";
+  const indent = "  ".repeat(depth);
+  const childBlocks = [];
+
+  for (const child of node.content || []) {
+    if (child.type === "paragraph") {
+      childBlocks.push(`${indent}${marker}${serializeInline(child.content)}`);
+    } else if (child.type === "bulletList") {
+      childBlocks.push(serializeNode(child, depth + 1).trimEnd());
+    } else if (child.type === "orderedList") {
+      childBlocks.push(serializeNode(child, depth + 1).trimEnd());
+    } else {
+      childBlocks.push(`${indent}${marker}${serializeNode(child, depth + 1).trim()}`);
+    }
+  }
+
+  return childBlocks.join("\n");
+}
+
+function serializeNode(node, depth = 0) {
+  switch (node.type) {
+    case "doc":
+      return (node.content || []).map((child) => serializeNode(child, depth)).join("").trimEnd() + "\n";
+    case "paragraph":
+      return `${serializeInline(node.content)}\n\n`;
+    case "heading":
+      return `${"#".repeat(node.attrs?.level || 1)} ${serializeInline(node.content)}\n\n`;
+    case "blockquote": {
+      const body = (node.content || [])
+        .map((child) => serializeNode(child, depth).trim())
+        .filter(Boolean)
+        .join("\n\n");
+      return `${indentBlock(body, "> ")}\n\n`;
+    }
+    case "bulletList":
+      return `${(node.content || [])
+        .map((child, index) => serializeListItem(child, depth, false, index))
+        .join("\n")}\n\n`;
+    case "orderedList":
+      return `${(node.content || [])
+        .map((child, index) => serializeListItem(child, depth, true, index))
+        .join("\n")}\n\n`;
+    case "codeBlock": {
+      const language = node.attrs?.language ? node.attrs.language : "";
+      const text = (node.content || []).map((child) => child.text || "").join("");
+      return `\`\`\`${language}\n${text}\n\`\`\`\n\n`;
+    }
+    case "blockMath":
+      return `$$\n${node.attrs?.latex || ""}\n$$\n\n`;
+    case "horizontalRule":
+      return `---\n\n`;
+    default:
+      return "";
+  }
+}
+
+function serializeDocument(json) {
+  return serializeNode(json).replace(/\n{3,}/g, "\n\n").trimEnd();
+}
+
+function migrateMath(editor) {
+  if (!editor) return;
+  const transaction = createMathMigrateTransaction(
+    editor,
+    editor.state.tr,
+    mathMigrationRegex,
+  );
+
+  if (transaction.docChanged) {
+    editor.view.dispatch(transaction);
+    return true;
+  }
+
+  return false;
+}
+
+function migrateMultilineBlockMath(editor) {
+  if (!editor) return false;
+
+  const { doc, schema } = editor.state;
+  const blockMathType = schema.nodes.blockMath;
+
+  if (!blockMathType) {
+    return false;
+  }
+
+  const topLevelNodes = [];
+  let offset = 0;
+
+  doc.forEach((node) => {
+    topLevelNodes.push({
+      node,
+      from: offset,
+      to: offset + node.nodeSize,
+    });
+    offset += node.nodeSize;
+  });
+
+  for (let index = 0; index < topLevelNodes.length; index += 1) {
+    const startNode = topLevelNodes[index];
+
+    if (
+      startNode.node.type.name !== "paragraph" ||
+      startNode.node.textContent.trim() !== "$$"
+    ) {
+      continue;
+    }
+
+    for (let endIndex = index + 1; endIndex < topLevelNodes.length; endIndex += 1) {
+      const endNode = topLevelNodes[endIndex];
+
+      if (
+        endNode.node.type.name === "paragraph" &&
+        endNode.node.textContent.trim() === "$$"
+      ) {
+        const latex = topLevelNodes
+          .slice(index + 1, endIndex)
+          .map((entry) => entry.node.textContent)
+          .join("\n")
+          .trim();
+
+        const transaction = editor.state.tr.replaceWith(
+          startNode.from,
+          endNode.to,
+          blockMathType.create({
+            latex: latex || "x^2",
+          }),
+        );
+
+        editor.view.dispatch(transaction);
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+function getLatexInput(defaultValue, label) {
+  const value = window.prompt(label, defaultValue);
+  return value === null ? null : value.trim();
 }
 
 function IconButton({ title, onClick, children }) {
@@ -139,6 +342,33 @@ const VisualEditor = forwardRef(function VisualEditor(
   const editor = useEditor({
     extensions: [
       StarterKit,
+      Mathematics.configure({
+        inlineOptions: {
+          onClick: (node, pos) => {
+            const latex = getLatexInput(
+              node.attrs.latex || "",
+              "Edit inline LaTeX",
+            );
+            if (latex !== null) {
+              editor.chain().setNodeSelection(pos).updateInlineMath({ latex }).focus().run();
+            }
+          },
+        },
+        blockOptions: {
+          onClick: (node, pos) => {
+            const latex = getLatexInput(
+              node.attrs.latex || "",
+              "Edit block LaTeX",
+            );
+            if (latex !== null) {
+              editor.chain().setNodeSelection(pos).updateBlockMath({ latex }).focus().run();
+            }
+          },
+        },
+        katexOptions: {
+          throwOnError: false,
+        },
+      }),
       Placeholder.configure({
         placeholder: "Start writing your note...",
       }),
@@ -150,17 +380,30 @@ const VisualEditor = forwardRef(function VisualEditor(
       },
     },
     content: marked.parse(markdown),
+    onCreate: ({ editor: currentEditor }) => {
+      if (migrateMultilineBlockMath(currentEditor)) {
+        return;
+      }
+      migrateMath(currentEditor);
+    },
     onUpdate: ({ editor: currentEditor }) => {
-      onChange(turndown.turndown(currentEditor.getHTML()));
+      if (migrateMultilineBlockMath(currentEditor)) {
+        return;
+      }
+      if (migrateMath(currentEditor)) {
+        return;
+      }
+      onChange(serializeDocument(currentEditor.getJSON()));
     },
     immediatelyRender: false,
   });
 
   useEffect(() => {
     if (!editor) return;
-    const editorMarkdown = turndown.turndown(editor.getHTML()).trim();
+    const editorMarkdown = serializeDocument(editor.getJSON()).trim();
     if (editorMarkdown !== markdown.trim() && !editor.isFocused) {
       editor.commands.setContent(marked.parse(markdown), false);
+      migrateMath(editor);
     }
   }, [editor, markdown]);
 
@@ -195,6 +438,24 @@ const VisualEditor = forwardRef(function VisualEditor(
           case "orderedList":
             chain.toggleOrderedList().run();
             break;
+          case "inlineMath": {
+            const { from, to } = editor.state.selection;
+            const selected = editor.state.doc.textBetween(from, to, " ");
+            const latex = getLatexInput(selected || "x^2", "Inline LaTeX");
+            if (latex) {
+              editor.commands.insertInlineMath({ latex });
+            }
+            break;
+          }
+          case "blockMath": {
+            const { from, to } = editor.state.selection;
+            const selected = editor.state.doc.textBetween(from, to, "\n");
+            const latex = getLatexInput(selected || "\\int_0^1 x^2\\,dx", "Block LaTeX");
+            if (latex) {
+              editor.commands.insertBlockMath({ latex });
+            }
+            break;
+          }
           default:
             break;
         }
@@ -237,6 +498,12 @@ const MarkdownEditor = forwardRef(function MarkdownEditor(
           break;
         case "orderedList":
           prefixSelection(textarea, markdown, onChange, "1. ");
+          break;
+        case "inlineMath":
+          wrapSelection(textarea, markdown, onChange, "$");
+          break;
+        case "blockMath":
+          wrapBlockSelection(textarea, markdown, onChange, "$$", "$$");
           break;
         default:
           break;
@@ -321,14 +588,16 @@ function App() {
           <section className="flex min-h-[72vh] flex-col overflow-hidden rounded-[2rem] border border-white/70 bg-white/80 shadow-panel backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
             <header className="flex flex-col gap-4 border-b border-slate-200/80 px-4 py-4 dark:border-slate-800 sm:px-6">
               <div className="flex flex-wrap items-center gap-2">
-                <${IconButton} title="Undo" onClick=${() => runAction("undo")}>↶</${IconButton}>
-                <${IconButton} title="Redo" onClick=${() => runAction("redo")}>↷</${IconButton}>
+                <${IconButton} title="Undo" onClick=${() => runAction("undo")}><span className="text-lg leading-none">↺</span></${IconButton}>
+                <${IconButton} title="Redo" onClick=${() => runAction("redo")}><span className="text-lg leading-none">↻</span></${IconButton}>
                 <${IconButton} title="Bold" onClick=${() => runAction("bold")}><strong>B</strong></${IconButton}>
                 <${IconButton} title="Italic" onClick=${() => runAction("italic")}><em>I</em></${IconButton}>
                 <${IconButton} title="Inline code" onClick=${() => runAction("code")}><span className="font-mono text-sm">${"</>"}</span></${IconButton}>
                 <${IconButton} title="Quote" onClick=${() => runAction("blockquote")}>❝</${IconButton}>
                 <${IconButton} title="Bulleted list" onClick=${() => runAction("bulletList")}>•</${IconButton}>
                 <${IconButton} title="Ordered list" onClick=${() => runAction("orderedList")}>1.</${IconButton}>
+                <${IconButton} title="Inline math" onClick=${() => runAction("inlineMath")}><span className="font-serif text-sm">ƒx</span></${IconButton}>
+                <${IconButton} title="Block math" onClick=${() => runAction("blockMath")}><span className="font-serif text-sm">∑</span></${IconButton}>
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

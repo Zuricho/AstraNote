@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AstraNote</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.16.28/dist/katex.min.css"
+    />
     <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
     <script>
       tailwind.config = {
@@ -93,6 +97,36 @@
         color: inherit;
         font-size: 0.95em;
         line-height: 1.75;
+      }
+
+      .tiptap-mathematics-render {
+        cursor: pointer;
+      }
+
+      .tiptap-mathematics-render[data-type="inline-math"] {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 9999px;
+        background: rgba(54, 82, 70, 0.1);
+        padding: 0.15rem 0.55rem;
+      }
+
+      .dark .tiptap-mathematics-render[data-type="inline-math"] {
+        background: rgba(54, 82, 70, 0.28);
+      }
+
+      .tiptap-mathematics-render[data-type="block-math"] {
+        margin: 1.25rem 0;
+        overflow-x: auto;
+        border-radius: 1.5rem;
+        background: #0f172a;
+        padding: 1.25rem 1.5rem;
+        color: #e2e8f0;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+      }
+
+      .dark .tiptap-mathematics-render[data-type="block-math"] {
+        background: #020617;
       }
 
       .editor-scroll::-webkit-scrollbar {
