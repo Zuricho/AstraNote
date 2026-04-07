@@ -1,23 +1,18 @@
 # AstraNote
 
-AstraNote is a WYSIWYG Markdown editor aimed at becoming an Electron-based desktop app. The repository is currently in a website form, serving as the foundation and prototype for the future desktop experience.
+AstraNote is a minimal WYSIWYG Markdown editor. The current repository is a small browser-based prototype focused on the editor core only.
 
 ## Overview
 
-The goal of AstraNote is to make Markdown editing feel direct and visual without losing the structure and portability of Markdown itself. It is designed for users who want a smoother writing experience than a plain text editor while still working with Markdown content.
+The product goal is to make Markdown editing feel direct and visual without giving up Markdown as the saved document format.
 
 ## Current State
 
-- Current form: web-based prototype
-- Target form: Electron desktop application
-- Core focus: WYSIWYG Markdown editing
+- Current form: static web app
+- Editor model: TipTap visual editor with Markdown serialization
+- UI model: a single editor surface with local CSS only
+- Removed from this trimmed version: page chrome, source mode, file controls, math support, PDF export, theme switching, and sidebar UI
 
 ## Vision
 
-AstraNote is intended to combine:
-
-- Visual rich-text style editing
-- Markdown compatibility
-- A desktop-app workflow powered by Electron
-
-This repository represents the early stage of that product direction.
+AstraNote is still aimed at a future desktop workflow, but this repository currently keeps only the essential editor surface and Markdown file handling.

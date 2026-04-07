@@ -4,166 +4,198 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AstraNote</title>
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/katex@0.16.28/dist/katex.min.css"
-    />
-    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              ink: "#172033",
-              mist: "#f5f1e8",
-              pine: "#365246",
-              clay: "#b86a4a",
-              paper: "#fffdf8",
-              dusk: "#22314d",
-            },
-            boxShadow: {
-              panel: "0 24px 80px rgba(23, 32, 51, 0.16)",
-            },
-          },
-        },
-      };
-    </script>
     <style>
       :root {
-        color-scheme: light dark;
+        color-scheme: light;
+        font-family:
+          "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino,
+          Georgia, serif;
+        color: #172033;
+        background: #efe8dd;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body,
+      #root {
+        height: 100%;
       }
 
       body {
-        min-height: 100vh;
-        background:
-          radial-gradient(circle at top left, rgba(184, 106, 74, 0.2), transparent 24rem),
-          radial-gradient(circle at top right, rgba(54, 82, 70, 0.18), transparent 24rem),
-          linear-gradient(180deg, #f7f2e9 0%, #f2eee6 100%);
-      }
-
-      .dark body {
-        background:
-          radial-gradient(circle at top left, rgba(184, 106, 74, 0.14), transparent 24rem),
-          radial-gradient(circle at top right, rgba(103, 130, 118, 0.14), transparent 24rem),
-          linear-gradient(180deg, #121927 0%, #0f1522 100%);
-      }
-
-      .ProseMirror {
+        margin: 0;
         min-height: 100%;
-        outline: none;
-        white-space: pre-wrap;
+        background:
+          radial-gradient(circle at top left, rgba(184, 106, 74, 0.14), transparent 26rem),
+          radial-gradient(circle at top right, rgba(35, 49, 77, 0.06), transparent 24rem),
+          linear-gradient(180deg, #f7f1e7 0%, #ede4d7 100%);
       }
 
-      .ProseMirror p.is-editor-empty:first-child::before {
-        color: #94a3b8;
-        content: attr(data-placeholder);
-        float: left;
-        height: 0;
-        pointer-events: none;
+      .app-shell {
+        min-height: 100%;
+        padding: 28px;
       }
 
-      .ProseMirror code {
-        border-radius: 0.5rem;
-        background: rgba(148, 163, 184, 0.18);
-        padding: 0.12rem 0.38rem;
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-        font-size: 0.9em;
-        color: #b45309;
+      .editor-frame {
+        min-height: calc(100vh - 56px);
+        max-width: 980px;
+        margin: 0 auto;
+        background:
+          linear-gradient(180deg, rgba(255, 253, 248, 0.96), rgba(255, 252, 246, 0.92));
+        border: 1px solid rgba(202, 189, 171, 0.72);
+        border-radius: 26px;
+        box-shadow:
+          0 26px 90px rgba(23, 32, 51, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.55);
       }
 
-      .dark .ProseMirror code {
-        background: rgba(51, 65, 85, 0.9);
-        color: #fdba74;
-      }
-
-      .ProseMirror pre {
-        overflow-x: auto;
-        border-radius: 0.45rem;
-        background: #0f172a;
-        padding: 0.85rem 1rem;
-        color: #e2e8f0;
-        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
-      }
-
-      .dark .ProseMirror pre {
-        background: #020617;
-      }
-
-      .ProseMirror pre code {
-        display: block;
-        background: transparent;
-        padding: 0;
-        border-radius: 0;
-        color: inherit;
-        font-size: 0.95em;
-        line-height: 1.75;
-      }
-
-      .tiptap-mathematics-render {
-        cursor: pointer;
-      }
-
-      .tiptap-mathematics-render[data-type="inline-math"] {
-        display: inline-flex;
-        align-items: center;
-        border-radius: 9999px;
-        background: rgba(54, 82, 70, 0.1);
-        padding: 0.15rem 0.55rem;
-      }
-
-      .dark .tiptap-mathematics-render[data-type="inline-math"] {
-        background: rgba(54, 82, 70, 0.28);
+      .editor-scroll {
+        min-height: calc(100vh - 56px);
+        overflow-y: auto;
+        padding: 72px 88px 88px;
       }
 
       .editor-scroll::-webkit-scrollbar {
-        width: 10px;
-        height: 10px;
+        width: 12px;
       }
 
       .editor-scroll::-webkit-scrollbar-thumb {
-        background: rgba(148, 163, 184, 0.55);
         border-radius: 9999px;
+        border: 3px solid transparent;
+        background: rgba(91, 100, 117, 0.32);
+        background-clip: padding-box;
       }
 
       .editor-scroll::-webkit-scrollbar-track {
         background: transparent;
       }
 
-      .ProseMirror h1,
-      .ProseMirror h2,
-      .ProseMirror h3 {
-        line-height: 1.3;
+      .editor-content {
+        min-height: calc(100vh - 200px);
+        max-width: 43rem;
+        margin: 0 auto;
+        outline: none;
+        white-space: pre-wrap;
+        line-height: 1.8;
+        color: #172033;
+        font-size: 1.08rem;
+        caret-color: #b86a4a;
       }
 
-      .ProseMirror h1 {
-        margin: 0.9rem 0 0.45rem;
-        font-size: 1.45rem;
+      .editor-content > :first-child {
+        margin-top: 0;
       }
 
-      .ProseMirror h2 {
-        margin: 0.8rem 0 0.4rem;
-        font-size: 1.2rem;
+      .editor-content h1,
+      .editor-content h2,
+      .editor-content h3 {
+        line-height: 1.25;
+        letter-spacing: -0.02em;
       }
 
-      .ProseMirror h3 {
-        margin: 0.7rem 0 0.35rem;
-        font-size: 1.05rem;
+      .editor-content h1 {
+        margin: 0 0 0.7rem;
+        font-size: 2.35rem;
       }
 
-      .ProseMirror p,
-      .ProseMirror ul,
-      .ProseMirror ol,
-      .ProseMirror blockquote,
-      .ProseMirror pre {
-        margin: 0.45rem 0;
+      .editor-content h2 {
+        margin: 1.7rem 0 0.45rem;
+        font-size: 1.65rem;
       }
 
-      .ProseMirror li + li {
-        margin-top: 0.18rem;
+      .editor-content h3 {
+        margin: 1.4rem 0 0.35rem;
+        font-size: 1.24rem;
+      }
+
+      .editor-content p,
+      .editor-content ul,
+      .editor-content ol,
+      .editor-content blockquote,
+      .editor-content pre,
+      .editor-content hr {
+        margin: 0.8rem 0;
+      }
+
+      .editor-content ul,
+      .editor-content ol {
+        padding-left: 1.65rem;
+      }
+
+      .editor-content li + li {
+        margin-top: 0.24rem;
+      }
+
+      .editor-content blockquote {
+        margin-left: 0;
+        padding-left: 1.1rem;
+        border-left: 3px solid #b86a4a;
+        color: #495468;
+        font-style: italic;
+      }
+
+      .editor-content code {
+        border-radius: 0.45rem;
+        background: #f1ece4;
+        padding: 0.1rem 0.35rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.9em;
+        color: #8c4f35;
+      }
+
+      .editor-content pre {
+        overflow-x: auto;
+        border-radius: 1rem;
+        background: #172033;
+        padding: 1.05rem 1.1rem;
+        color: #ebeff6;
+        box-shadow: 0 14px 30px rgba(23, 32, 51, 0.14);
+      }
+
+      .editor-content pre code {
+        padding: 0;
+        background: transparent;
+        color: inherit;
+      }
+
+      .editor-content hr {
+        border: 0;
+        border-top: 1px solid #ddd2c4;
+      }
+
+      .editor-content ::selection {
+        background: rgba(184, 106, 74, 0.18);
+      }
+
+      @media (max-width: 720px) {
+        .app-shell {
+          padding: 12px;
+        }
+
+        .editor-frame {
+          min-height: calc(100vh - 24px);
+          border-radius: 20px;
+        }
+
+        .editor-scroll {
+          min-height: calc(100vh - 24px);
+          padding: 34px 22px 42px;
+        }
+
+        .editor-content {
+          min-height: calc(100vh - 110px);
+          font-size: 1rem;
+        }
+
+        .editor-content h1 {
+          font-size: 1.9rem;
+        }
       }
     </style>
   </head>
-  <body class="text-ink antialiased transition-colors duration-200 dark:text-slate-100">
+  <body>
     <div id="root"></div>
     <script type="module" src="/assets/app.js"></script>
   </body>
